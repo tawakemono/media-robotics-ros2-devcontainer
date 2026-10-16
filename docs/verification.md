@@ -43,8 +43,8 @@ ROS 2: Humble、rmw_fastrtps_cpp
 | 人によるブラウザでの手動操作 | NOT TESTED | 自動ブラウザ検証と区別する |
 | コンテナ再起動 / Rebuild | PASS | restart→CLI up→GUIテスト成功。CLI up --remove-existing-container後に両テスト成功 |
 | ホスト共有 / 一般ユーザー編集 | PASS | コンテナで生成→ホストで追記→studentで読込・削除。`colcon list` がfixtureを検出しないことも確認 |
-| GitHub Actions linux/amd64 | NOT TESTED | Push後に確認 |
-| GitHub Actions linux/arm64 | NOT TESTED | Linux上での検証 |
+| GitHub Actions linux/amd64 | PASS | 下記CI実行でビルド・両テスト・artifact保存が成功 |
+| GitHub Actions linux/arm64 | PASS | 同じDockerfileをarm64ネイティブrunnerで検証。Mac実機検証とは異なる |
 | Mac Apple Silicon | NOT TESTED | 実機を使用しない |
 | Mac Intel | NOT TESTED | 実機を使用しない |
 | Pi → Dev Container | NOT TESTED | 実機を使用しない |
@@ -56,7 +56,41 @@ ROS 2: Humble、rmw_fastrtps_cpp
 
 追加の静的確認: ShellCheck、actionlint、Bash構文、Pythonコンパイル、日本語ドキュメントのローカルリンクがPASS。実機通信切替スクリプトはros2をモックして0 / 1 / 99 / 100 / 101、不正値・範囲外・先頭ゼロ、daemon停止順序を確認したため、実機通信PASSとは扱いません。
 
-初回CIのarm64ではイメージビルド・test-local・test-guiが成功した後、ログのartifactアップロードがFAILになりました。コンテナのstudentとGitHub runnerのUID差により、mktemp由来の0700ディレクトリをrunnerから読めなかったためです。CIのログ収集段階でジョブ専用の `/tmp/ros2-ci-logs` の所有権をrunnerへ移す修正を行い、再実行します。テスト成功とCI全体の成功は分けて判定します。
+初回CIは両アーキテクチャともイメージビルド・test-local・test-guiが成功した後、ログのartifactアップロードがFAILになりました。コンテナのstudentとGitHub runnerのUID差により、mktemp由来の0700ディレクトリをrunnerから読めなかったためです。CIのログ収集段階でジョブ専用の `/tmp/ros2-ci-logs` の所有権をrunnerへ移す修正を行い、再実行で両ジョブの成功を確認しました。テスト成功とCI全体の成功は分けて判定しています。
+
+## GitHub Actionsでの最終確認
+
+検証日時: 2026-10-16 14:23〜14:27 JST
+
+ホストOS: 両runnerともUbuntu 24.04.5 LTS
+
+CPUアーキテクチャ: linux/amd64、linux/arm64（各ネイティブrunner）
+
+Dockerバージョン: CIでは個別に収集していない。使用したrunner imageはamd64が `20261012.334.1`、arm64が `20261012.149.1`
+
+VS Codeバージョン: 対象外（Docker直接実行のCI）
+
+コンテナOS: Ubuntu 22.04.5 LTS、Python 3.10.12
+
+ROS 2: Humble / rmw_fastrtps_cpp
+
+検証項目: ネイティブビルド、OS・Python・rclpy・Qt・型定義、通信、一時ワークスペースのPythonパッケージとLaunch、Xvfb、noVNC HTTP、loopback bind、rqt_graph / rqt_image_viewウィンドウ、ログ保存
+
+実行結果: 両ジョブがPASS、`logs-0` / `logs-1` のartifact保存も確認
+
+問題点: 初回のartifact読取権限エラー
+
+対応内容: 上述のジョブ専用ログの所有権調整
+
+最終判定: PASS（Linuxコンテナ自動テスト。Mac・ロボット通信を含まない）
+
+検証対象コミット: `05e01db26ea48f4458e1104192a9f41074a81d3d`
+
+- [成功したワークフロー](https://github.com/tawakemono/media-robotics-ros2-devcontainer/actions/runs/38855548512)
+- [linux/amd64ジョブ](https://github.com/tawakemono/media-robotics-ros2-devcontainer/actions/runs/38855548512/job/116826065729)
+- [linux/arm64ジョブ](https://github.com/tawakemono/media-robotics-ros2-devcontainer/actions/runs/38855548512/job/116826065511)
+
+この結果を記録する後続コミットはドキュメントだけを更新し、実装・ワークフローは上記の検証済みコミットと同一です。
 
 ## 追加検証の記録テンプレート
 
