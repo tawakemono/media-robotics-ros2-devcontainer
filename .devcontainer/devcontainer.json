@@ -1,0 +1,22 @@
+{
+  "name": "Media Robotics ROS2 Humble",
+  "build": { "dockerfile": "Dockerfile", "context": ".." },
+  "remoteUser": "student",
+  "updateRemoteUserUID": true,
+  "workspaceFolder": "/home/student/ros2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/student/ros2_ws,type=bind",
+  "runArgs": ["--network=host"],
+  "init": true,
+  "containerEnv": {
+    "DISPLAY": ":99",
+    "ROS_DOMAIN_ID": "0",
+    "ROS_LOCALHOST_ONLY": "1",
+    "RMW_IMPLEMENTATION": "rmw_fastrtps_cpp",
+    "QT_X11_NO_MITSHM": "1",
+    "LIBGL_ALWAYS_SOFTWARE": "1"
+  },
+  "postStartCommand": "bash .devcontainer/scripts/start-gui.sh",
+  "customizations": {
+    "vscode": { "extensions": ["ms-python.python", "ms-vscode.cpptools"] }
+  }
+}

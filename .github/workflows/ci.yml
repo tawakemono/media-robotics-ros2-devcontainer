@@ -1,0 +1,54 @@
+name: ROS 2 Humble
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  container:
+    name: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux/amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native image
+        timeout-minutes: 25
+        run: docker build --platform '${{ matrix.platform }}' --progress=plain -t ros2-lab:test -f .devcontainer/Dockerfile .
+      - name: Start student container
+        run: |
+          mkdir -p /tmp/ros2-ci-logs
+          chmod 777 /tmp/ros2-ci-logs
+          docker run -d --init --name ros2-lab --network host \
+            -v "$PWD:/home/student/ros2_ws:ro" \
+            -v /tmp/ros2-ci-logs:/tmp/test-results \
+            ros2-lab:test
+      - name: Environment, messages, communication, build, launch
+        timeout-minutes: 6
+        run: docker exec -e TEST_LOG_DIR=/tmp/test-results/local ros2-lab timeout --kill-after=10 300 bash scripts/test-local.sh
+      - name: Virtual display, noVNC, Qt applications
+        timeout-minutes: 4
+        run: docker exec -e TEST_LOG_DIR=/tmp/test-results/gui ros2-lab timeout --kill-after=10 180 bash scripts/test-gui.sh
+      - name: Collect logs
+        if: always()
+        run: |
+          docker logs ros2-lab > /tmp/ros2-ci-logs/container.log 2>&1 || true
+          docker cp ros2-lab:/tmp/ros2-gui-1000 /tmp/ros2-ci-logs/gui-services || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ strategy.job-index }}
+          path: /tmp/ros2-ci-logs
+      - name: Stop container
+        if: always()
+        run: docker rm -f ros2-lab || true
