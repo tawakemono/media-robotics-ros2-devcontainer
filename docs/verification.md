@@ -34,6 +34,8 @@ ROS 2: Humble、rmw_fastrtps_cpp
 | fixtureビルド / ros2 run / Launch | PASS | 一時ワークスペースでビルド・本文の受信。終了後にテストノードなし |
 | Xvfb / HTTP / loopback bind / Qtウィンドウ | PASS | `scripts/test-gui.sh`、graphとimage_viewの両方 |
 | GUIスクリプト再実行 | PASS | PIDが変わらないことを確認 |
+| GUIポート競合 / 失敗後の復旧 | PASS | 別プロセスで6080を使用すると非ゼロ終了と原因ログを出力。競合解消後に再起動成功 |
+| ビルド失敗時の後始末 | PASS | colconを終了コード42のモックへ置換し、失敗として終了。talker/listenerが残らないことをpsで確認 |
 | Ubuntu Dev Containers CLI起動 / 接続 | PASS | VS Code拡張同梱CLI 0.89.0のup / exec、student UID/GID 1000 |
 | 異なるホストUIDからの自動調整 | NOT TESTED | このホストとイメージのUIDは共に1000。設定は有効 |
 | VS Codeエディタ画面での手動操作 | NOT TESTED | CLI起動と区別する |
@@ -53,6 +55,8 @@ ROS 2: Humble、rmw_fastrtps_cpp
 ユーザー指定により今回の検証は現在のUbuntuとGitHub Actionsに限定します。Mac・Piの実機検証、Remote-SSH・VMによる代替通信は未実施です。これらをサポート確認済みと表記しません。
 
 追加の静的確認: ShellCheck、actionlint、Bash構文、Pythonコンパイル、日本語ドキュメントのローカルリンクがPASS。実機通信切替スクリプトはros2をモックして0 / 1 / 99 / 100 / 101、不正値・範囲外・先頭ゼロ、daemon停止順序を確認したため、実機通信PASSとは扱いません。
+
+初回CIのarm64ではイメージビルド・test-local・test-guiが成功した後、ログのartifactアップロードがFAILになりました。コンテナのstudentとGitHub runnerのUID差により、mktemp由来の0700ディレクトリをrunnerから読めなかったためです。CIのログ収集段階でジョブ専用の `/tmp/ros2-ci-logs` の所有権をrunnerへ移す修正を行い、再実行します。テスト成功とCI全体の成功は分けて判定します。
 
 ## 追加検証の記録テンプレート
 
